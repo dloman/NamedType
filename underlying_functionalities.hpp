@@ -4,6 +4,7 @@
 #include "crtp.hpp"
 #include "named_type_impl.hpp"
 
+#include <fmt/format.h>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -34,7 +35,7 @@ struct Subtractable : crtp<T, Subtractable>
 {
     T operator-(T const& other) const { return T(this->underlying().get() - other.get()); }
 };
-    
+
 template <typename T>
 struct Multiplicable : crtp<T, Multiplicable>
 {
@@ -46,7 +47,7 @@ struct Negatable : crtp<T, Negatable>
 {
     T operator-() const { return T(-this->underlying().get()); }
 };
-    
+
 template <typename T>
 struct Comparable : crtp<T, Comparable>
 {
@@ -61,7 +62,7 @@ struct Comparable : crtp<T, Comparable>
 template <typename T>
 struct Printable : crtp<T, Printable>
 {
-    void print(std::ostream& os) const { os << this->underlying().get(); }
+  void print(std::ostream& os) const { os << this->underlying().get(); }
 };
 
 template <typename Destination>
@@ -71,6 +72,19 @@ struct ImplicitlyConvertibleTo
     struct templ : crtp<T, templ>
     {
         operator Destination() const
+        {
+            return this->underlying().get();
+        }
+    };
+};
+
+template <typename Destination>
+struct ExplicitlyConvertibleTo
+{
+    template <typename T>
+    struct templ : crtp<T, templ>
+    {
+        explicit operator Destination() const
         {
             return this->underlying().get();
         }
@@ -92,7 +106,7 @@ struct Hashable
 
 template<typename NamedType_>
 struct FunctionCallable;
-    
+
 template <typename T, typename Parameter, template<typename> class... Skills>
 struct FunctionCallable<NamedType<T, Parameter, Skills...>> : crtp<NamedType<T, Parameter, Skills...>, FunctionCallable>
 {
@@ -105,10 +119,10 @@ struct FunctionCallable<NamedType<T, Parameter, Skills...>> : crtp<NamedType<T, 
         return this->underlying().get();
     }
 };
-    
+
 template<typename NamedType_>
 struct MethodCallable;
-    
+
 template <typename T, typename Parameter, template<typename> class... Skills>
 struct MethodCallable<NamedType<T, Parameter, Skills...>> : crtp<NamedType<T, Parameter, Skills...>, MethodCallable>
 {
@@ -118,7 +132,7 @@ struct MethodCallable<NamedType<T, Parameter, Skills...>> : crtp<NamedType<T, Pa
 
 template<typename NamedType_>
 struct Callable : FunctionCallable<NamedType_>, MethodCallable<NamedType_>{};
-    
+
 } // namespace fluent
 
 namespace std
@@ -128,7 +142,7 @@ struct hash<fluent::NamedType<T, Parameter, Skills...>>
 {
     using NamedType = fluent::NamedType<T, Parameter, Skills...>;
     using checkIfHashable = typename std::enable_if<NamedType::is_hashable, void>::type;
-    
+
     size_t operator()(fluent::NamedType<T, Parameter, Skills...> const& x) const
     {
         return std::hash<T>()(x.get());
@@ -136,6 +150,6 @@ struct hash<fluent::NamedType<T, Parameter, Skills...>>
 };
 
 }
-    
+
 
 #endif

@@ -13,21 +13,28 @@
 
 namespace fluent
 {
-    
+
 template<typename T>
 using IsNotReference = typename std::enable_if<!std::is_reference<T>::value, void>::type;
+
+template<typename T>
+using IsDefaultConstructable = typename std::enable_if<std::is_default_constructible<T>::value, void>::type;
 
 template <typename T, typename Parameter, template<typename> class... Skills>
 class FLUENT_EBCO NamedType : public Skills<NamedType<T, Parameter, Skills...>>...
 {
 public:
     using UnderlyingType = T;
-    
+
     // constructor
     explicit constexpr NamedType(T const& value) : value_(value) {}
+
     template<typename T_ = T, typename = IsNotReference<T_>>
     explicit constexpr NamedType(T&& value) : value_(std::move(value)) {}
-    
+
+    template<typename T_ = T, typename = IsDefaultConstructable<T_>>
+    explicit constexpr NamedType() : value_() {}
+
     // get
     constexpr T& get() { return value_; }
     constexpr std::remove_reference_t<T> const& get() const {return value_; }
@@ -38,7 +45,7 @@ public:
     {
         return ref(value_);
     }
-    
+
     struct argument
     {
         template<typename U>
@@ -52,7 +59,7 @@ public:
         argument& operator=(argument const&) = delete;
         argument& operator=(argument &&) = delete;
     };
-    
+
 private:
     T value_;
 };
@@ -62,7 +69,19 @@ constexpr StrongType<T> make_named(T const& value)
 {
     return StrongType<T>(value);
 }
-    
+
 } // namespace fluent
 
+template <typename T, typename Parameter, template<typename> class... Skills>
+struct fmt::formatter<fluent::NamedType<T, Parameter, Skills...>>
+{
+  template <typename ParseContext>
+  constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const fluent::NamedType<T, Parameter, Skills...> &t, FormatContext &ctx)
+  {
+    return format_to(ctx.out(), "{}", t.get());
+  }
+};
 #endif /* named_type_impl_h */
