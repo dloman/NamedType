@@ -65,6 +65,12 @@ struct Printable : crtp<T, Printable>
   void print(std::ostream& os) const { os << this->underlying().get(); }
 };
 
+template <typename T>
+struct Readable : crtp<T, Readable>
+{
+  void read(std::istream& is) { is >> this->underlying().get(); }
+};
+
 template <typename Destination>
 struct ImplicitlyConvertibleTo
 {
@@ -96,6 +102,13 @@ std::ostream& operator<<(std::ostream& os, NamedType<T, Parameter, Skills...> co
 {
     object.print(os);
     return os;
+}
+
+template <typename T, typename Parameter, template<typename> class... Skills>
+std::istream& operator>>(std::istream& is, NamedType<T, Parameter, Skills...>& object)
+{
+    object.read(is);
+    return is;
 }
 
 template<typename T>
